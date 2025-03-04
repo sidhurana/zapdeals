@@ -1,0 +1,32 @@
+# 🔥 Python Ignore Files
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+*.sqlite3
+db.sqlite3
+
+# 🔥 Dependency Files
+*.log
+*.env
+.env.local
+.env.production
+.env.development
+node_modules/
+package-lock.json
+yarn.lock
+
+# 🔥 VSCode & OS System Files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 🔥 Build & Deploy Files
+build/
+dist/
+coverage/
+.idea/
+
