@@ -1,32 +1,96 @@
+// src/App.js
 import React, { useEffect, useState } from "react";
+import { signInWithGoogle, logout, auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import axios from "axios";
 
-const API_URL = "http://localhost:8000/api/deals"; // Ensure this is your backend API URL
-
 function App() {
+  const [user, setUser] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Monitor user authentication state
   useEffect(() => {
-    // Use API_URL in the axios.get call
-    axios.get(API_URL)
-      .then(response => setDeals(response.data))
-      .catch(error => console.error("Error fetching deals:", error));
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchDeals(currentUser);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
+  // Fetch Deals from Backend
+  const fetchDeals = async (user) => {
+    try {
+      const idToken = await user.getIdToken(); // Get Firebase token
+      const response = await axios.get("http://localhost:8000/api/deals", {
+        headers: {
+          Authorization: `Bearer ${idToken}`, // Pass token to FastAPI
+        },
+      });
+      setDeals(response.data);
+    } catch (error) {
+      console.error("Error fetching deals:", error);
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <h1 className="text-3xl font-bold text-center mb-6">🔥 ZapDeals 🔥</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {deals.map(deal => (
-          <div key={deal.id} className="bg-white p-4 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold">{deal.title}</h2>
-            <p className="text-gray-700">{deal.description}</p>
-            <a href={deal.url} className="text-blue-500 underline" target="_blank" rel="noopener noreferrer">
-              View Deal
-            </a>
-          </div>
-        ))}
-      </div>
+    <div style={{ textAlign: "center", padding: "20px" }}>
+      <h1>🔥 SlickDeals Clone 🔥</h1>
+
+      {!user ? (
+        <button onClick={signInWithGoogle} style={{ padding: "10px" }}>
+          Login with Google
+        </button>
+      ) : (
+        <>
+          <h2>Welcome, {user.displayName}</h2>
+          <img src={user.photoURL} alt="Profile" style={{ borderRadius: "50%" }} />
+          <button onClick={logout} style={{ marginLeft: "10px", padding: "10px" }}>
+            Logout
+          </button>
+          <h3>Deals:</h3>
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {deals.length > 0 ? (
+              deals.map((deal) => (
+                <li key={deal.dealID} style={{ marginBottom: "20px" }}>
+                  <a
+                    href={`https://www.cheapshark.com/redirect?dealID=${deal.dealID}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      textDecoration: "none",
+                      color: "black",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <img
+                      src={deal.thumb}
+                      alt={deal.title}
+                      style={{ width: "120px", height: "60px", borderRadius: "5px" }}
+                    />
+                    <div>
+                      <strong>{deal.title}</strong> -  
+                      <span style={{ color: "red", fontWeight: "bold", marginLeft: "5px" }}>
+                        ${deal.salePrice}
+                      </span>
+                    </div>
+                  </a>
+                </li>
+              ))
+            ) : (
+              <p>No deals available</p>
+            )}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
