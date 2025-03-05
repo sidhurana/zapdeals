@@ -1,76 +1,97 @@
+// src/App.js
 import React, { useEffect, useState } from "react";
+import { signInWithGoogle, logout, auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import axios from "axios";
 
 function App() {
+  const [user, setUser] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Monitor user authentication state
   useEffect(() => {
-    fetch("http://localhost:8000/api/deals")
-      .then((res) => res.json())
-      .then((data) => setDeals(data));
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      fetchDeals(currentUser);  // Fetch deals whether user is logged in or not
+    });
+
+    return () => unsubscribe();
   }, []);
 
+  // 🔹 Always Fetch Deals (Login Optional)
+  const fetchDeals = async (user) => {
+    try {
+      const headers = {}; // Empty headers by default
+      if (user) {
+        const idToken = await user.getIdToken();
+        headers["Authorization"] = `Bearer ${idToken}`;
+      }
+
+      const response = await axios.get("http://localhost:8000/api/deals", { headers });
+      setDeals(response.data);
+    } catch (error) {
+      console.error("Error fetching deals:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
   return (
-    <div style={{ maxWidth: "900px", margin: "auto", padding: "20px" }}>
-      <h1 style={{ textAlign: "center", color: "#333" }}>🔥 ZAPDEALS 🔥</h1>
-      
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-        gap: "20px",
-      }}>
-        {deals.map((deal) => (
-          <div key={deal.dealID || deal.gameID} 
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: "10px",
-              overflow: "hidden",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-              background: "#fff",
-              transition: "transform 0.2s",
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
-            onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-          >
-            <a 
-              href={`https://www.cheapshark.com/redirect?dealID=${deal.dealID}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ textDecoration: "none", color: "black" }}
-            >
-              <img 
-                src={deal.thumb} 
-                alt={deal.title} 
-                style={{ width: "100%", height: "150px", objectFit: "cover" }} 
-              />
-              <div style={{ padding: "10px" }}>
-                <h3 style={{ fontSize: "18px", marginBottom: "5px" }}>{deal.title}</h3>
-                <p style={{ margin: "0", fontSize: "14px", color: "#888" }}>
-                  <b>Normal Price:</b> <span style={{ textDecoration: "line-through" }}>${deal.normalPrice}</span>
-                </p>
-                <p style={{ margin: "0", fontSize: "16px", color: "red", fontWeight: "bold" }}>
-                  🔥 Deal Price: ${deal.salePrice}
-                </p>
-                <p style={{ margin: "5px 0", fontSize: "14px", color: "#555" }}>
-                  Savings: <b>{Math.round(deal.savings)}%</b> | ⭐ {deal.steamRatingText} ({deal.steamRatingPercent}%)
-                </p>
-                <button style={{
-                  background: "green",
-                  color: "white",
-                  padding: "8px 12px",
-                  width: "100%",
-                  border: "none",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                  fontSize: "16px",
-                  marginTop: "10px"
-                }}>
-                  View Deal
-                </button>
-              </div>
-            </a>
-          </div>
-        ))}
-      </div>
+    <div style={{ textAlign: "center", padding: "20px" }}>
+      <h1>🔥 SlickDeals Clone 🔥</h1>
+
+      {!user ? (
+        <button onClick={signInWithGoogle} style={{ padding: "10px" }}>
+          Login with Google
+        </button>
+      ) : (
+        <>
+          <h2>Welcome, {user.displayName}</h2>
+          <img src={user.photoURL} alt="Profile" style={{ borderRadius: "50%" }} />
+          <button onClick={logout} style={{ marginLeft: "10px", padding: "10px" }}>
+            Logout
+          </button>
+        </>
+      )}
+
+      <h3>Deals:</h3>
+      <ul style={{ listStyle: "none", padding: 0 }}>
+        {deals.length > 0 ? (
+          deals.map((deal) => (
+            <li key={deal.dealID} style={{ marginBottom: "20px" }}>
+              <a
+                href={`https://www.cheapshark.com/redirect?dealID=${deal.dealID}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  textDecoration: "none",
+                  color: "black",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <img
+                  src={deal.thumb}
+                  alt={deal.title}
+                  style={{ width: "120px", height: "60px", borderRadius: "5px" }}
+                />
+                <div>
+                  <strong>{deal.title}</strong> -  
+                  <span style={{ color: "red", fontWeight: "bold", marginLeft: "5px" }}>
+                    ${deal.salePrice}
+                  </span>
+                </div>
+              </a>
+            </li>
+          ))
+        ) : (
+          <p>No deals available</p>
+        )}
+      </ul>
     </div>
   );
 }
