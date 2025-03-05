@@ -3,26 +3,28 @@ import React, { useEffect, useState } from "react";
 import { signInWithGoogle, logout, auth } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import axios from "axios";
+import AppNavbar from "./components/Navbar";
+import DealsGrid from "./components/DealsGrid";
+import Footer from "./components/Footer";
 
 function App() {
   const [user, setUser] = useState(null);
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Monitor user authentication state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      fetchDeals(currentUser);  // Fetch deals whether user is logged in or not
+      fetchDeals(currentUser);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // 🔹 Always Fetch Deals (Login Optional)
   const fetchDeals = async (user) => {
     try {
-      const headers = {}; // Empty headers by default
+      const headers = {};
       if (user) {
         const idToken = await user.getIdToken();
         headers["Authorization"] = `Bearer ${idToken}`;
@@ -37,62 +39,12 @@ function App() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <h1>🔥 SlickDeals Clone 🔥</h1>
-
-      {!user ? (
-        <button onClick={signInWithGoogle} style={{ padding: "10px" }}>
-          Login with Google
-        </button>
-      ) : (
-        <>
-          <h2>Welcome, {user.displayName}</h2>
-          <img src={user.photoURL} alt="Profile" style={{ borderRadius: "50%" }} />
-          <button onClick={logout} style={{ marginLeft: "10px", padding: "10px" }}>
-            Logout
-          </button>
-        </>
-      )}
-
-      <h3>Deals:</h3>
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {deals.length > 0 ? (
-          deals.map((deal) => (
-            <li key={deal.dealID} style={{ marginBottom: "20px" }}>
-              <a
-                href={`https://www.cheapshark.com/redirect?dealID=${deal.dealID}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  textDecoration: "none",
-                  color: "black",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                }}
-              >
-                <img
-                  src={deal.thumb}
-                  alt={deal.title}
-                  style={{ width: "120px", height: "60px", borderRadius: "5px" }}
-                />
-                <div>
-                  <strong>{deal.title}</strong> -  
-                  <span style={{ color: "red", fontWeight: "bold", marginLeft: "5px" }}>
-                    ${deal.salePrice}
-                  </span>
-                </div>
-              </a>
-            </li>
-          ))
-        ) : (
-          <p>No deals available</p>
-        )}
-      </ul>
-    </div>
+    <>
+      <AppNavbar user={user} signInWithGoogle={signInWithGoogle} logout={logout} setSearchTerm={setSearchTerm} />
+      {loading ? <p className="text-center text-muted">Loading deals...</p> : <DealsGrid deals={deals} searchTerm={searchTerm} />}
+      <Footer />
+    </>
   );
 }
 
