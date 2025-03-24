@@ -1,21 +1,16 @@
-# main.py
-
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth, credentials, initialize_app
 import requests
+import base64
 
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("../credentials.json")  # Update the path if needed
+cred = credentials.Certificate("../credentials.json")
 initialize_app(cred)
 
 app = FastAPI()
 
-# CORS configuration
-origins = [
-    "http://localhost:3000",  # Frontend URL
-]
+origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,25 +20,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔹 Use HTTPBearer to handle optional token authentication
-auth_scheme = HTTPBearer(auto_error=False)  # `auto_error=False` makes token optional
+auth_scheme = HTTPBearer(auto_error=False)
 
-# 🔹 Function to verify Firebase token (optional authentication)
 async def verify_token(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
-    if token:  # Only verify if token exists
+    if token:
         try:
-            decoded_token = auth.verify_id_token(token.credentials)  # Extract Bearer token
+            decoded_token = auth.verify_id_token(token.credentials)
             return decoded_token
-        except Exception as e:
+        except Exception:
             raise HTTPException(status_code=401, detail="Unauthorized")
-    return None  # No token means no authentication, but still allow request
+    return None
 
-# 🔹 Route to fetch deals from CheapShark (open to all users)
+# Replace these with your actual keys
+EBAY_CLIENT_ID = "Sudhirku-znapdeal-PRD-8b01dac8a-afac2203"
+EBAY_CLIENT_SECRET = "PRD-b01dac8a84df-99b6-426c-b536-f521"
+
 @app.get("/api/deals")
-async def get_deals(token: dict = Depends(verify_token)):  # Token is now optional
-    response = requests.get("https://www.cheapshark.com/api/1.0/deals")
-    data = response.json()
-    return data  # Return all deals, even if no login
+async def get_ebay_deals(token: dict = Depends(verify_token)):
+    auth_str = f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}"
+    b64_auth = base64.b64encode(auth_str.encode()).decode()
+    token_headers = {
+        "Authorization": f"Basic {b64_auth}",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    token_data = {
+        "grant_type": "client_credentials",
+        "scope": "https://api.ebay.com/oauth/api_scope"
+    }
+    token_response = requests.post("https://api.ebay.com/identity/v1/oauth2/token", headers=token_headers, data=token_data)
+    if token_response.status_code != 200:
+        raise HTTPException(status_code=token_response.status_code, detail="Failed to obtain eBay access token")
 
-# Add other routes as necessary
+    access_token = token_response.json().get("access_token")
+
+    url = "https://api.ebay.com/buy/browse/v1/item_summary/search?q=video%20games&limit=20"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Failed to fetch eBay deals")
+
+    items = response.json().get("itemSummaries", [])
+    formatted = [
+        {
+            "title": item.get("title"),
+            "price": f"{item['price']['value']} {item['price']['currency']}",
+            "image": item.get("image", {}).get("imageUrl"),
+            "url": item.get("itemWebUrl")
+        }
+        for item in items
+    ]
+    return formatted
 
