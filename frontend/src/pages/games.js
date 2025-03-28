@@ -29,4 +29,3 @@ async def get_ebay_deals(token: dict = Depends(verify_token)):
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch eBay deals")
 
     return response.json().get("itemSummaries", [])
-

@@ -53,7 +53,7 @@ async def get_ebay_deals(token: dict = Depends(verify_token)):
 
     access_token = token_response.json().get("access_token")
 
-    url = "https://api.ebay.com/buy/browse/v1/item_summary/search?q=video%20games&limit=20"
+    url = "https://api.ebay.com/buy/browse/v1/item_summary/search?q=electronics&limit=20"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
