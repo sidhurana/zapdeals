@@ -1,4 +1,3 @@
-// src/components/Navbar.js
 import React from "react";
 import { Navbar, Nav, Container, Button } from "react-bootstrap";
 import Categories from "./Categories";
@@ -8,7 +7,15 @@ const AppNavbar = ({ user, signInWithGoogle, logout, setSearchTerm }) => {
   return (
     <Navbar bg="light" expand="lg" className="shadow-sm">
       <Container>
-        <Navbar.Brand className="text-primary fw-bold">🔥 Zapdeals 🔥</Navbar.Brand>
+        <Navbar.Brand href="/" className="d-flex align-items-center">
+          <img
+            src="/zd-logo.png"
+            alt="Znapdeals Logo"
+            height="40"
+            className="me-2"
+          />
+          <span className="text-primary fw-bold">Znapdeals</span>
+        </Navbar.Brand>
         <Navbar.Toggle aria-controls="navbar-nav" />
         <Navbar.Collapse id="navbar-nav">
           <Nav className="me-auto">
