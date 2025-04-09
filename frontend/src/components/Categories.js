@@ -2,14 +2,31 @@
 import React from "react";
 import { NavDropdown } from "react-bootstrap";
 
-const Categories = () => {
+const Categories = ({ onCategorySelect }) => {
+  const categories = [
+    { id: "electronics", name: "Electronics" },
+    { id: "gaming", name: "Gaming" },
+    { id: "home", name: "Home & Kitchen" },
+    { id: "fashion", name: "Fashion" },
+    { id: "ebay", name: "eBay Deals" },
+  ];
+
+  const handleCategorySelect = (categoryId) => {
+    if (onCategorySelect) {
+      onCategorySelect(categoryId);
+    }
+  };
+
   return (
     <NavDropdown title="Categories" id="categories-dropdown">
-      <NavDropdown.Item href="#">Electronics</NavDropdown.Item>
-      <NavDropdown.Item href="#">Gaming</NavDropdown.Item>
-      <NavDropdown.Item href="#">Home & Kitchen</NavDropdown.Item>
-      <NavDropdown.Item href="#">Fashion</NavDropdown.Item>
-      <NavDropdown.Item href="#">More...</NavDropdown.Item>
+      {categories.map((category) => (
+        <NavDropdown.Item
+          key={category.id}
+          onClick={() => handleCategorySelect(category.id)}
+        >
+          {category.name}
+        </NavDropdown.Item>
+      ))}
     </NavDropdown>
   );
 };

@@ -12,6 +12,7 @@ function App() {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -20,7 +21,7 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [selectedCategory]);
 
   const fetchDeals = async (user) => {
     try {
@@ -30,24 +31,26 @@ function App() {
         headers["Authorization"] = `Bearer ${idToken}`;
       }
 
-      const response = await axios.get("http://localhost:8000/api/deals", { headers });
-      
-      // 👇 Log the full eBay API response to inspect image & pricing structure
-      console.log("👉 Full API Response from eBay:", response.data);
-
-      // Try logging just one item for clarity
-      if (response.data?.itemSummaries?.length) {
-        console.log("👉 Sample Item:", response.data.itemSummaries[0]);
+      let url = "http://localhost:8000/api/deals";
+      if (selectedCategory) {
+        url += `?category=${selectedCategory}`;
       }
 
-      // Use itemSummaries if available, otherwise fallback
-      const items = response.data?.itemSummaries || response.data || [];
+      const response = await axios.get(url, { headers });
+      console.log("👉 Full API Response:", response.data);
+
+      const items = response.data || [];
       setDeals(items);
     } catch (error) {
       console.error("❌ Error fetching deals:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCategorySelect = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setLoading(true);
   };
 
   return (
@@ -57,6 +60,7 @@ function App() {
         signInWithGoogle={signInWithGoogle}
         logout={logout}
         setSearchTerm={setSearchTerm}
+        onCategorySelect={handleCategorySelect}
       />
       {loading ? (
         <p className="text-center text-muted">Loading deals...</p>

@@ -3,7 +3,7 @@ import { Navbar, Nav, Container, Button } from "react-bootstrap";
 import Categories from "./Categories";
 import SearchBar from "./SearchBar";
 
-const AppNavbar = ({ user, signInWithGoogle, logout, setSearchTerm }) => {
+const AppNavbar = ({ user, signInWithGoogle, logout, setSearchTerm, onCategorySelect }) => {
   return (
     <Navbar bg="light" expand="lg" className="shadow-sm">
       <Container>
@@ -19,9 +19,9 @@ const AppNavbar = ({ user, signInWithGoogle, logout, setSearchTerm }) => {
         <Navbar.Toggle aria-controls="navbar-nav" />
         <Navbar.Collapse id="navbar-nav">
           <Nav className="me-auto">
-            <Categories /> {/* Dropdown Menu for Categories */}
+            <Categories onCategorySelect={onCategorySelect} />
           </Nav>
-          <SearchBar setSearchTerm={setSearchTerm} /> {/* Search Bar */}
+          <SearchBar setSearchTerm={setSearchTerm} />
           {!user ? (
             <Button variant="primary" onClick={signInWithGoogle} className="ms-3">
               Login with Google
